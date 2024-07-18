@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Antique Dealrship</title>
+    <link rel="stylesheet" href="styles/main.css" />
+  </head>
+
+  <body>
+    <div class="header">
+      <h1>Antique Dealership</h1>
+    </div>
+    <% if (locals.pages && locals.currentPage) { %>
+    <div class="subheader">
+      <a
+        href="/"
+        class="<% if (currentPage == pages.home) { %> <%="currentPage"%> <% }%>"
+        >Home</a
+      >
+      <a href="/categories" class="<% if (currentPage == pages.categories) { %> <%="currentPage"%> <% }%>">Categories</a>
+      <a href="/contact" class="<% if (currentPage == pages.contact) { %> <%="currentPage"%> <% }%>">Contact</a>
+      <a href="/delivery" class="<% if (currentPage == pages.delivery) { %> <%="currentPage"%> <% }%>">Delivery</a>
+    </div>
+    <% } %>
+  </body>
+</html>

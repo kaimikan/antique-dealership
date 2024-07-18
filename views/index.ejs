@@ -1,12 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Antique Dealrship</title>
-    <link rel="stylesheet" href="styles/main.css" />
-  </head>
-  <body>
-    <h1>Welcome!</h1>
-  </body>
-</html>
+<%- include('./partials/header.ejs') %>
+
+<div class="content">
+  <p>Our Antiques:</p>
+  <% if (locals.antiques) { %> <% for (let i = 0; i < antiques.length; i++) { %>
+  <div class="antique-small-view">
+    <p class="image">
+      <img src="<%= antiques[i].imageObject.path + "/" +
+      antiques[i].imageObject.name + "." + antiques[i].imageObject.img_extension
+      %>" alt="<%= antiques[i].imageObject.alt %>" />
+    </p>
+    <p class="name"><%= antiques[i].name %></p>
+    <p class="cost"><%= antiques[i].cost_euro + " EURO"%></p>
+  </div>
+  <% } %> <% } else { %>
+  <p>not loading locals antique D:</p>
+  <%} %>
+</div>
+
+<%- include('./partials/footer.ejs') %>
