@@ -5,7 +5,7 @@
   <p>Our Antiques:</p>
   <div class="antique-small-view">
     <% for (let i = 0; i < antiques.length; i++) { %>
-    <div class="square-container">
+    <div class="square-container" antique-id="<%= antiques[i].id %>">
       <div class="image-container">
         <img src="<%= antiques[i].imageObject.path + "/" +
         antiques[i].imageObject.name + "." +
@@ -26,5 +26,31 @@
   <p>not loading locals antiques D:</p>
   <%} %>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Find the clickable div
+    const clickableDivs = document.getElementsByClassName('square-container');
+
+    // Add click event listener to the div
+    for (let i = 0; i < clickableDivs.length; i++) {
+      clickableDivs[i].addEventListener('click', function () {
+        // Get the antique ID from data attribute
+        const antiqueId = clickableDivs[i].getAttribute('antique-id');
+        console.log(antiqueId);
+        // Create a form element
+        const form = document.createElement('form');
+        form.setAttribute('method', 'get');
+        form.setAttribute('action', `/antique${antiqueId}`);
+
+        // Append form to body (or any other parent element)
+        document.body.appendChild(form);
+
+        // Submit the form
+        form.submit();
+      });
+    }
+  });
+</script>
 
 <%- include('./partials/footer.ejs') %>

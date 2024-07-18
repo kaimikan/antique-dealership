@@ -1,0 +1,35 @@
+<%- include('./partials/header.ejs') %>
+
+<div class="content">
+  <div class="antique-big-view">
+    <% if (locals.antique) { %>
+    <div class="image-container">
+      <img src="<%= antique.imageObject.path + "/" + antique.imageObject.name +
+      "." + antique.imageObject.img_extension %>" alt="<%=
+      antique.imageObject.alt %>" />
+    </div>
+
+    <div class="extra-images-container">
+      <% antique.secondaryImageObjects.map((secondaryImageObject) => { %>
+        <div class="single-extra-image-container">
+          <img class="extra-image" src="<%= secondaryImageObject.path + "/" +
+          secondaryImageObject.name + "." + secondaryImageObject.img_extension %>"
+          alt="<%= secondaryImageObject.alt %>" />
+        </div>
+        <% }); %>
+      </div>
+
+      <div class="text-container">
+        <h2 class="name"><%= antique.name %></h2>
+        <p class="refence"><b>Ref.: </b><%= antique.reference_number %></p>
+        <h3 class="cost"><%= "€ " + antique.cost_euro%></h3>
+        <p class="description"><%= antique.description%></p>
+      </div>
+      <% } else { %>
+      <p>not loading locals antiques D:</p>
+      <%} %>
+    </div>
+  </div>
+
+  <%- include('./partials/footer.ejs') %>
+</div>
