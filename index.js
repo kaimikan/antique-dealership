@@ -1,6 +1,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import pg from 'pg';
+import bcrypt from 'bcrypt';
 
 const app = express();
 const port = 3000;
@@ -138,6 +139,45 @@ app.get('/delivery', async (req, res) => {
 
 app.get('/login', async (req, res) => {
   res.render('login.ejs', {});
+});
+
+app.post('/login', async (req, res) => {
+  console.log('FORM RETURN: ', req.body);
+  const username = req.body.username;
+  const loginPassword = req.body.password;
+
+  try {
+    const result = await db.query('SELECT * FROM admins WHERE username = $1', [
+      username,
+    ]);
+    if (result.rows.length > 0) {
+      const admin = result.rows[0];
+      const storedHashPassword = admin.password_hash;
+      console.log(admin);
+
+      // don't need to specify salt rounds since the .compare method automatically extracts them from the hash itself
+      bcrypt.compare(loginPassword, storedHashPassword, (err, result) => {
+        if (err) {
+          console.error(err.message);
+        } else {
+          if (result) {
+            console.log(result);
+            res.render('login.ejs', { isAdmin: true });
+          } else {
+            res.render('login.ejs', {
+              message: 'Unsuccesful Login, try again!',
+            });
+          }
+        }
+      });
+    } else {
+      res.render('login.ejs', {
+        message: 'Unsuccesful Login, try again!',
+      });
+    }
+  } catch (err) {
+    console.log(err);
+  }
 });
 
 app.listen(port, () => {
