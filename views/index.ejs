@@ -1,19 +1,29 @@
 <%- include('./partials/header.ejs') %>
 
 <div class="content">
+  <% if (locals.antiques) { %>
   <p>Our Antiques:</p>
-  <% if (locals.antiques) { %> <% for (let i = 0; i < antiques.length; i++) { %>
   <div class="antique-small-view">
-    <p class="image">
-      <img src="<%= antiques[i].imageObject.path + "/" +
-      antiques[i].imageObject.name + "." + antiques[i].imageObject.img_extension
-      %>" alt="<%= antiques[i].imageObject.alt %>" />
-    </p>
-    <p class="name"><%= antiques[i].name %></p>
-    <p class="cost"><%= antiques[i].cost_euro + " EURO"%></p>
+    <% for (let i = 0; i < antiques.length; i++) { %>
+    <div class="square-container">
+      <div class="image-container">
+        <img src="<%= antiques[i].imageObject.path + "/" +
+        antiques[i].imageObject.name + "." +
+        antiques[i].imageObject.img_extension %>" alt="<%=
+        antiques[i].imageObject.alt %>" />
+        <div class="text-overlay">
+          <h2 class="name"><%= antiques[i].name %></h2>
+          <p class="refence">
+            <b>Ref.: </b><%= antiques[i].reference_number %>
+          </p>
+          <h3 class="cost"><%= "€ " + antiques[i].cost_euro%></h3>
+        </div>
+      </div>
+    </div>
+    <% } %>
   </div>
-  <% } %> <% } else { %>
-  <p>not loading locals antique D:</p>
+  <% } else { %>
+  <p>not loading locals antiques D:</p>
   <%} %>
 </div>
 
