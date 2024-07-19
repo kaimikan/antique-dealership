@@ -135,6 +135,19 @@ async function getAntiqueSecondaryImages(antique) {
   }
 }
 
+async function getCategories() {
+  try {
+    const response = await db.query(' SELECT * FROM categories');
+    const categories = response.rows;
+    console.log(categories);
+
+    return categories;
+  } catch (error) {
+    console.error(error.message);
+    return { error: error.message };
+  }
+}
+
 app.get('/', async (req, res) => {
   const antiques = await getAntiques();
   res.render('index.ejs', {
@@ -189,8 +202,19 @@ app.get('/dashboard', isAuthenticated, (req, res) => {
   res.render('./admin/dashboard.ejs', { admin: req.user });
 });
 
-app.get('/create', isAuthenticated, async (req, res) => {
-  res.render('./admin/create.ejs', {});
+// TODO add back isAuthenticated and req.user as admin when done testing
+app.get('/create', async (req, res) => {
+  const categories = await getCategories();
+  res.render('./admin/create.ejs', {
+    admin: { username: 'testing atm' },
+    categories: categories,
+  });
+});
+
+// TODO add back isAuthenticated and req.user as admin when done testing
+app.post('/create', async (req, res) => {
+  console.log('FORM DATA: ', req.body);
+  res.render('./admin/create.ejs', { admin: { username: 'testing atm' } });
 });
 
 app.post(
