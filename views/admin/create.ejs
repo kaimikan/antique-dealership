@@ -6,7 +6,7 @@ VALUES ('Example Chair', 'A chair used as an example first antique item', '{1}',
 'Height: 140cm; Width: 100cm; Length: 90cm;', 50, '#123123', 1, '{2, 2, 2}'); -->
   <div class="secret-admin-antique-creation">
     <!-- Makes POST request to /login route -->
-    <form action="/create" method="POST">
+    <form action="/create" method="POST" enctype="multipart/form-data">
       <h2>Antique Creation</h2>
       <!-- NAME -->
       <div class="form-group">
@@ -54,6 +54,7 @@ VALUES ('Example Chair', 'A chair used as an example first antique item', '{1}',
           type="file"
           class="main-image"
           name="image"
+          id="image"
           accept="image/*"
           onchange="previewMainImage()"
         />
@@ -68,6 +69,7 @@ VALUES ('Example Chair', 'A chair used as an example first antique item', '{1}',
           type="file"
           class="secondary-images"
           name="images"
+          id="images"
           accept="image/*"
           multiple
           onchange="previewSecondaryImages()"

@@ -6,9 +6,27 @@ import session from 'express-session';
 import passport from 'passport';
 import { Strategy } from 'passport-local';
 import flash from 'connect-flash';
+import multer from 'multer';
+import path from 'path';
 
 const app = express();
 const port = 3000;
+
+app.use(bodyParser.urlencoded({ extended: true }));
+// adding json parsing after adding enctype="multipart/form-data" to the create.ejs form
+app.use(bodyParser.json());
+app.use(express.static('public'));
+
+// Configure Multer storage
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'public/assets/images/'); // Directory where files will be saved
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname); // Append timestamp to filename to avoid overwriting
+  },
+});
+const upload = multer({ storage: storage });
 
 app.use(
   session({
@@ -27,6 +45,12 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash()); // Use flash middleware
+
+// handling errors
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something went wrong!');
+});
 
 // Middleware to check if user is authenticated
 function isAuthenticated(req, res, next) {
@@ -54,9 +78,6 @@ const PAGES = {
   dashboard: 'dashboard',
   create: 'create',
 };
-
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static('public'));
 
 async function getAntiques() {
   try {
@@ -206,8 +227,7 @@ app.get('/dashboard', isAuthenticated, (req, res) => {
   res.render('./admin/dashboard.ejs', { admin: req.user });
 });
 
-// TODO add back isAuthenticated and req.user as admin when done testing
-app.get('/create', async (req, res) => {
+app.get('/create', isAuthenticated, async (req, res) => {
   const categories = await getCategories();
   res.render('./admin/create.ejs', {
     admin: { username: 'testing atm' },
@@ -215,119 +235,143 @@ app.get('/create', async (req, res) => {
   });
 });
 
-// TODO add back isAuthenticated and req.user as admin when done testing
-app.post('/create', async (req, res) => {
-  console.log('FORM DATA: ', req.body);
-  const name = req.body.name;
-  const description = req.body.description;
+app.post(
+  '/create',
+  isAuthenticated,
+  upload.fields([{ name: 'image' }, { name: 'images' }]),
+  async (req, res, next) => {
+    // Check if files were uploaded
+    const mainImg = req.files['image'] ? req.files['image'][0] : undefined;
 
-  const categoryPattern = /^category_\d+$/;
-  let matchedCategoriesIds = [];
+    // Multiple files (secondary images)
+    const secondaryImgs = req.files['images'] || [];
 
-  for (let key in req.body) {
-    if (req.body.hasOwnProperty(key) && categoryPattern.test(key)) {
-      console.log(key);
-      matchedCategoriesIds.push(Number(key.split('_')[1], 10));
+    console.log('Main Image:', mainImg);
+    console.log('Secondary Images:', secondaryImgs);
+
+    console.log('FORM DATA: ', req.body);
+    const name = req.body.name;
+    const description = req.body.description;
+
+    const categoryPattern = /^category_\d+$/;
+    let matchedCategoriesIds = [];
+
+    for (let key in req.body) {
+      // before file upload form
+      // if (req.body.hasOwnProperty(key) && categoryPattern.test(key)) {
+      //   console.log(key);
+      //   matchedCategoriesIds.push(Number(key.split('_')[1], 10));
+      // }
+      if (
+        Object.prototype.hasOwnProperty.call(req.body, key) &&
+        categoryPattern.test(key)
+      ) {
+        console.log('KEY: ', key);
+        console.log();
+        const categoryID = Number(key.split('_')[1], 10);
+        matchedCategoriesIds.push(categoryID);
+      }
     }
-  }
 
-  console.log(matchedCategoriesIds);
-  const mainImage = req.body.image;
-  const secondaryImages = req.body.images;
-  const dimensions = {
-    width: req.body.width,
-    height: req.body.height,
-    length: req.body.length,
-  };
-  const cost = req.body.cost;
-
-  try {
-    const mainImageObject = {
-      name: mainImage.split('.')[0],
-      path: 'assets/images',
-      alt: mainImage.split('.')[0].toLowerCase(),
-      img_extension: mainImage.split('.')[1].toLowerCase(),
+    console.log(matchedCategoriesIds);
+    const mainImage = mainImg.originalname;
+    const secondaryImages = secondaryImgs;
+    const dimensions = {
+      width: req.body.width,
+      height: req.body.height,
+      length: req.body.length,
     };
-    console.log({ mainImageObject });
-    const resultMainImage = await db.query(
-      'INSERT INTO images (name, path, alt, img_extension) VALUES ($1, $2, $3, $4) RETURNING id',
-      [
-        mainImageObject.name,
-        mainImageObject.path,
-        mainImageObject.alt,
-        mainImageObject.img_extension,
-      ]
-    );
-    console.log('MAIN IMG ID: ', resultMainImage.rows[0].id);
-    const mainImageDatabaseId = resultMainImage.rows[0].id;
-
-    let secondaryImageObjects = [];
-    secondaryImages.map((secondaryImage) => {
-      secondaryImageObjects.push({
-        name: secondaryImage.split('.')[0],
-        path: 'assets/images',
-        alt: secondaryImage.split('.')[0].toLowerCase(),
-        img_extension: secondaryImage.split('.')[1].toLowerCase(),
-      });
-    });
-    console.log(secondaryImageObjects);
-
-    let secondaryImagesDatabaseIds = [];
-    for (let i = 0; i < secondaryImageObjects.length; i++) {
-      const resultSecondaryImg = await db.query(
-        'INSERT INTO images (name, path, alt, img_extension) VALUES ($1, $2, $3, $4) RETURNING id',
-        [
-          secondaryImageObjects[i].name,
-          secondaryImageObjects[i].path,
-          secondaryImageObjects[i].alt,
-          secondaryImageObjects[i].img_extension,
-        ]
-      );
-      console.log('SECONDARY IMG ID: ', resultSecondaryImg.rows[0].id);
-      const secondaryImgId = resultSecondaryImg.rows[0].id;
-      secondaryImagesDatabaseIds.push(secondaryImgId);
-    }
-    // TODO save images to public/assets/images
-
-    const antiqueObject = {
-      name: name,
-      description: description,
-      categoriesIds: matchedCategoriesIds,
-      mainImage: mainImage,
-      secondaryImages: secondaryImages,
-      dimensions: getFormattedDimensions(dimensions),
-      cost: Number(cost, 10),
-      referenceNumber: '#123123',
-      mainImageId: mainImageDatabaseId,
-      secondaryImagesIds: secondaryImagesDatabaseIds,
-    };
-    console.log(antiqueObject);
+    const cost = req.body.cost;
 
     try {
-      await db.query(
-        'INSERT INTO antiques (name, description, category_ids, dimensions_centimeters, cost_euro, reference_number, main_image_id, secondary_images_ids) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      const mainImageObject = {
+        name: mainImage.split('.')[0],
+        path: 'assets/images',
+        alt: mainImage.split('.')[0].toLowerCase(),
+        img_extension: mainImage.split('.')[1].toLowerCase(),
+      };
+      console.log({ mainImageObject });
+      const resultMainImage = await db.query(
+        'INSERT INTO images (name, path, alt, img_extension) VALUES ($1, $2, $3, $4) RETURNING id',
         [
-          antiqueObject.name,
-          antiqueObject.description,
-          antiqueObject.categoriesIds,
-          antiqueObject.dimensions,
-          antiqueObject.cost,
-          antiqueObject.referenceNumber,
-          antiqueObject.mainImageId,
-          antiqueObject.secondaryImagesIds,
+          mainImageObject.name,
+          mainImageObject.path,
+          mainImageObject.alt,
+          mainImageObject.img_extension,
         ]
       );
+      console.log('MAIN IMG ID: ', resultMainImage.rows[0].id);
+      const mainImageDatabaseId = resultMainImage.rows[0].id;
 
-      res.redirect('/');
+      let secondaryImageObjects = [];
+      secondaryImages.map((secondaryImage) => {
+        const secondaryImageName = secondaryImage.originalname;
+        secondaryImageObjects.push({
+          name: secondaryImageName.split('.')[0],
+          path: 'assets/images',
+          alt: secondaryImageName.split('.')[0].toLowerCase(),
+          img_extension: secondaryImageName.split('.')[1].toLowerCase(),
+        });
+      });
+      console.log(secondaryImageObjects);
+
+      let secondaryImagesDatabaseIds = [];
+      for (let i = 0; i < secondaryImageObjects.length; i++) {
+        const resultSecondaryImg = await db.query(
+          'INSERT INTO images (name, path, alt, img_extension) VALUES ($1, $2, $3, $4) RETURNING id',
+          [
+            secondaryImageObjects[i].name,
+            secondaryImageObjects[i].path,
+            secondaryImageObjects[i].alt,
+            secondaryImageObjects[i].img_extension,
+          ]
+        );
+        console.log('SECONDARY IMG ID: ', resultSecondaryImg.rows[0].id);
+        const secondaryImgId = resultSecondaryImg.rows[0].id;
+        secondaryImagesDatabaseIds.push(secondaryImgId);
+      }
+      // TODO save images to public/assets/images
+
+      const antiqueObject = {
+        name: name,
+        description: description,
+        categoriesIds: matchedCategoriesIds,
+        mainImage: mainImage,
+        secondaryImages: secondaryImages,
+        dimensions: getFormattedDimensions(dimensions),
+        cost: Number(cost, 10),
+        referenceNumber: '#123123',
+        mainImageId: mainImageDatabaseId,
+        secondaryImagesIds: secondaryImagesDatabaseIds,
+      };
+      console.log(antiqueObject);
+
+      try {
+        await db.query(
+          'INSERT INTO antiques (name, description, category_ids, dimensions_centimeters, cost_euro, reference_number, main_image_id, secondary_images_ids) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+          [
+            antiqueObject.name,
+            antiqueObject.description,
+            antiqueObject.categoriesIds,
+            antiqueObject.dimensions,
+            antiqueObject.cost,
+            antiqueObject.referenceNumber,
+            antiqueObject.mainImageId,
+            antiqueObject.secondaryImagesIds,
+          ]
+        );
+
+        res.redirect('/');
+      } catch (error) {
+        console.error(error.message);
+        res.redirect('/create');
+      }
     } catch (error) {
       console.error(error.message);
       res.redirect('/create');
     }
-  } catch (error) {
-    console.error(error.message);
-    res.redirect('/create');
   }
-});
+);
 
 app.post(
   '/login',
