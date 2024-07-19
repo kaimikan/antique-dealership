@@ -2,9 +2,39 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import pg from 'pg';
 import bcrypt from 'bcrypt';
+import session from 'express-session';
+import passport from 'passport';
+import { Strategy } from 'passport-local';
+import flash from 'connect-flash';
 
 const app = express();
 const port = 3000;
+
+app.use(
+  session({
+    secret: 'TOP SECRET!!!',
+    // resave - gives option to save the session to the db instead of browser
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+      // a cookie now lasts 24 hours
+      maxAge: 1000 * 60 * 60 * 24,
+    },
+  })
+);
+// session first
+// passport after
+app.use(passport.initialize());
+app.use(passport.session());
+app.use(flash()); // Use flash middleware
+
+// Middleware to check if user is authenticated
+function isAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.redirect('/login');
+}
 
 // TODO eventually get this from .env
 const db = new pg.Client({
@@ -21,6 +51,8 @@ const PAGES = {
   categories: 'categories',
   contact: 'contact',
   delivery: 'delivery',
+  dashboard: 'dashboard',
+  create: 'create',
 };
 
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -88,9 +120,6 @@ async function getAntiqueSecondaryImages(antique) {
     const secondaryImagesIds = antique.secondary_images_ids;
     // console.log({ secondaryImagesIds });
 
-    const imagesIdsString = `(${secondaryImagesIds.join(', ')})`;
-    // console.log(imagesIdsString);
-
     const response = await db.query(
       ' SELECT * FROM images WHERE id = ANY($1::int[])',
       [secondaryImagesIds]
@@ -125,59 +154,107 @@ app.get('/antique:id', async (req, res) => {
   });
 });
 
-app.get('/contact', async (req, res) => {
+app.get('/contact', (req, res) => {
   res.render('contact.ejs', { currentPage: PAGES.contact, pages: PAGES });
 });
 
-app.get('/categories', async (req, res) => {
+app.get('/categories', (req, res) => {
   res.render('categories.ejs', { currentPage: PAGES.categories, pages: PAGES });
 });
 
-app.get('/delivery', async (req, res) => {
+app.get('/delivery', (req, res) => {
   res.render('delivery.ejs', { currentPage: PAGES.delivery, pages: PAGES });
 });
 
-app.get('/login', async (req, res) => {
-  res.render('login.ejs', {});
+app.get('/login', (req, res) => {
+  if (req.user) res.render('./admin/dashboard.ejs', { admin: req.user });
+  else {
+    const errorMessages = req.flash('error');
+    console.log(errorMessages);
+    res.render('./admin/login.ejs', { errorMessages });
+  }
 });
 
-app.post('/login', async (req, res) => {
-  console.log('FORM RETURN: ', req.body);
-  const username = req.body.username;
-  const loginPassword = req.body.password;
-
-  try {
-    const result = await db.query('SELECT * FROM admins WHERE username = $1', [
-      username,
-    ]);
-    if (result.rows.length > 0) {
-      const admin = result.rows[0];
-      const storedHashPassword = admin.password_hash;
-      console.log(admin);
-
-      // don't need to specify salt rounds since the .compare method automatically extracts them from the hash itself
-      bcrypt.compare(loginPassword, storedHashPassword, (err, result) => {
-        if (err) {
-          console.error(err.message);
-        } else {
-          if (result) {
-            console.log(result);
-            res.render('login.ejs', { isAdmin: true });
-          } else {
-            res.render('login.ejs', {
-              message: 'Unsuccesful Login, try again!',
-            });
-          }
-        }
-      });
-    } else {
-      res.render('login.ejs', {
-        message: 'Unsuccesful Login, try again!',
-      });
+app.get('/logout', (req, res) => {
+  req.logout((err) => {
+    if (err) {
+      return next(err);
     }
-  } catch (err) {
-    console.log(err);
-  }
+    res.redirect('/login'); // Redirect to login page after successful logout
+  });
+});
+
+app.get('/dashboard', isAuthenticated, (req, res) => {
+  console.log(req.user);
+  res.render('./admin/dashboard.ejs', { admin: req.user });
+});
+
+app.get('/create', isAuthenticated, async (req, res) => {
+  res.render('./admin/create.ejs', {});
+});
+
+app.post(
+  '/login',
+  passport.authenticate('local', {
+    successRedirect: '/dashboard',
+    failureRedirect: '/login',
+    failureFlash: true, // Enable flash messages
+  })
+);
+
+passport.use(
+  new Strategy(async function verify(username, password, cb) {
+    // if the names match the form names for the username and pass fields we do not need to do req.body.username and req.body.password
+    // to get them, they will assign to the function as seen below
+    console.log(username, password);
+
+    try {
+      const result = await db.query(
+        'SELECT * FROM admins WHERE username = $1',
+        [username]
+      );
+      if (result.rows.length > 0) {
+        const admin = result.rows[0];
+        const storedHashedPassword = admin.password_hash;
+        bcrypt.compare(password, storedHashedPassword, (err, result) => {
+          if (err) {
+            console.log('Problem with bcrypt!');
+            return cb(err);
+          } else {
+            if (result) {
+              console.log('Returning matched admin!');
+              const errors = null;
+              return cb(errors, admin);
+            } else {
+              const errors = null;
+              const isUserAuthenticated = false;
+              // able to pass messages cause of connect-flash
+              console.log('Incorrect password!');
+              return cb(errors, isUserAuthenticated, {
+                message: 'Incorrect password!',
+              });
+            }
+          }
+        });
+      } else {
+        console.log('Admin not found!');
+        return cb(null, false, { message: 'Admin not found!' });
+      }
+    } catch (err) {
+      console.log('SQL Query error!');
+      return cb(err);
+    }
+  })
+);
+
+// saves user to local session
+passport.serializeUser((user, cb) => {
+  cb(null, user);
+});
+
+// retrieves user from local session
+passport.deserializeUser((user, cb) => {
+  cb(null, user);
 });
 
 app.listen(port, () => {

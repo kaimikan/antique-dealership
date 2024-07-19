@@ -8,10 +8,10 @@
   </head>
 
   <body>
-    <div class="header">
-      <h1>Antique Dealership</h1>
-    </div>
     <% if (locals.pages && locals.currentPage) { %>
+    <div class="header">
+      <h1><a href="/">Antique Dealership</a></h1>
+    </div>
     <div class="subheader">
       <a
         href="/"
@@ -22,6 +22,19 @@
       <a href="/contact" class="<% if (currentPage == pages.contact) { %> <%="currentPage"%> <% }%>">Contact</a>
       <a href="/delivery" class="<% if (currentPage == pages.delivery) { %> <%="currentPage"%> <% }%>">Delivery</a>
     </div>
+    <% } else { %>
+      <div class="header">
+        <h1><a href="/login"></a>Admin Antique Dealership</h1>
+      </div>
+      <% if (locals.admin) { %>
+      <div class="subheader">
+        <a
+          href="/"
+          class=""
+          >Add</a>
+        <a href="/logout" class="">Logout</a>
+      </div>
+      <% } %>
     <% } %>
   </body>
 </html>

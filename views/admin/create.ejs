@@ -1,0 +1,28 @@
+<%- include('../partials/header.ejs') %>
+
+<div class="secret-content">
+  <div class="secret-admin-login">
+    <!-- Makes POST request to /login route -->
+    <% if (!locals.isAdmin) { %>
+    <form action="/login" method="POST">
+      <h2>Admin Login Form</h2>
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" name="username" />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" name="password" />
+      </div>
+      <% if (locals.message) { %>
+      <p><%= message %></p>
+      <% } %>
+      <button type="submit">Login</button>
+    </form>
+    <% } else { %>
+    <p>Welcome admin, *some admin dashboard Database controls here*</p>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/footer.ejs') %>

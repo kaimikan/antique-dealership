@@ -13,6 +13,13 @@
   z-index: 999;
 }
 
+.header > h1 > a {
+  text-decoration: none;
+  color: #dadada;
+  width: 100%;
+  text-align: center;
+}
+
 .subheader {
   display: flex;
   justify-content: space-around;
