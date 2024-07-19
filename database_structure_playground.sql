@@ -27,7 +27,7 @@ CREATE TABLE categories (
 	description TEXT NOT NULL, 
 	filter_words TEXT[] NOT NULL
 );
-INSERT INTO categories (name, description, filler_words) 
+INSERT INTO categories (name, description, filter_words) 
 VALUES ('chairs', 'a category for all chair antiques', '{"chair","chairs","armchair","armchair"}');
 
 CREATE TABLE images (

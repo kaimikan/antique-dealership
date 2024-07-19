@@ -148,6 +148,10 @@ async function getCategories() {
   }
 }
 
+function getFormattedDimensions(dimensionsObject) {
+  return `Height: ${dimensionsObject.height}cm; Width: ${dimensionsObject.width}cm; Length: ${dimensionsObject.length}cm;`;
+}
+
 app.get('/', async (req, res) => {
   const antiques = await getAntiques();
   res.render('index.ejs', {
@@ -214,7 +218,115 @@ app.get('/create', async (req, res) => {
 // TODO add back isAuthenticated and req.user as admin when done testing
 app.post('/create', async (req, res) => {
   console.log('FORM DATA: ', req.body);
-  res.render('./admin/create.ejs', { admin: { username: 'testing atm' } });
+  const name = req.body.name;
+  const description = req.body.description;
+
+  const categoryPattern = /^category_\d+$/;
+  let matchedCategoriesIds = [];
+
+  for (let key in req.body) {
+    if (req.body.hasOwnProperty(key) && categoryPattern.test(key)) {
+      console.log(key);
+      matchedCategoriesIds.push(Number(key.split('_')[1], 10));
+    }
+  }
+
+  console.log(matchedCategoriesIds);
+  const mainImage = req.body.image;
+  const secondaryImages = req.body.images;
+  const dimensions = {
+    width: req.body.width,
+    height: req.body.height,
+    length: req.body.length,
+  };
+  const cost = req.body.cost;
+
+  try {
+    const mainImageObject = {
+      name: mainImage.split('.')[0],
+      path: 'assets/images',
+      alt: mainImage.split('.')[0].toLowerCase(),
+      img_extension: mainImage.split('.')[1].toLowerCase(),
+    };
+    console.log({ mainImageObject });
+    const resultMainImage = await db.query(
+      'INSERT INTO images (name, path, alt, img_extension) VALUES ($1, $2, $3, $4) RETURNING id',
+      [
+        mainImageObject.name,
+        mainImageObject.path,
+        mainImageObject.alt,
+        mainImageObject.img_extension,
+      ]
+    );
+    console.log('MAIN IMG ID: ', resultMainImage.rows[0].id);
+    const mainImageDatabaseId = resultMainImage.rows[0].id;
+
+    let secondaryImageObjects = [];
+    secondaryImages.map((secondaryImage) => {
+      secondaryImageObjects.push({
+        name: secondaryImage.split('.')[0],
+        path: 'assets/images',
+        alt: secondaryImage.split('.')[0].toLowerCase(),
+        img_extension: secondaryImage.split('.')[1].toLowerCase(),
+      });
+    });
+    console.log(secondaryImageObjects);
+
+    let secondaryImagesDatabaseIds = [];
+    for (let i = 0; i < secondaryImageObjects.length; i++) {
+      const resultSecondaryImg = await db.query(
+        'INSERT INTO images (name, path, alt, img_extension) VALUES ($1, $2, $3, $4) RETURNING id',
+        [
+          secondaryImageObjects[i].name,
+          secondaryImageObjects[i].path,
+          secondaryImageObjects[i].alt,
+          secondaryImageObjects[i].img_extension,
+        ]
+      );
+      console.log('SECONDARY IMG ID: ', resultSecondaryImg.rows[0].id);
+      const secondaryImgId = resultSecondaryImg.rows[0].id;
+      secondaryImagesDatabaseIds.push(secondaryImgId);
+    }
+    // TODO save images to public/assets/images
+
+    const antiqueObject = {
+      name: name,
+      description: description,
+      categoriesIds: matchedCategoriesIds,
+      mainImage: mainImage,
+      secondaryImages: secondaryImages,
+      dimensions: getFormattedDimensions(dimensions),
+      cost: Number(cost, 10),
+      referenceNumber: '#123123',
+      mainImageId: mainImageDatabaseId,
+      secondaryImagesIds: secondaryImagesDatabaseIds,
+    };
+    console.log(antiqueObject);
+
+    try {
+      await db.query(
+        'INSERT INTO antiques (name, description, category_ids, dimensions_centimeters, cost_euro, reference_number, main_image_id, secondary_images_ids) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+        [
+          antiqueObject.name,
+          antiqueObject.description,
+          antiqueObject.categoriesIds,
+          antiqueObject.dimensions,
+          antiqueObject.cost,
+          antiqueObject.referenceNumber,
+          antiqueObject.mainImageId,
+          antiqueObject.secondaryImagesIds,
+        ]
+      );
+
+      res.redirect('/');
+    } catch (error) {
+      console.error(error.message);
+      res.redirect('/create');
+    }
+  } catch (error) {
+    console.error(error.message);
+    res.redirect('/create');
+  }
 });
 
 app.post(
