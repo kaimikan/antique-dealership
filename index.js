@@ -8,6 +8,7 @@ import { Strategy } from 'passport-local';
 import flash from 'connect-flash';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
 
 const app = express();
 const port = 3000;
@@ -75,6 +76,7 @@ const PAGES = {
   categories: 'categories',
   contact: 'contact',
   delivery: 'delivery',
+  // admin pages
   dashboard: 'dashboard',
   create: 'create',
 };
@@ -192,6 +194,16 @@ app.get('/antique:id', async (req, res) => {
   });
 });
 
+app.get('/controlantique:id', async (req, res) => {
+  console.log(req.params.id);
+  const antique = await getAntique(req.params.id);
+  res.render('./admin/antique-control.ejs', {
+    currentPage: PAGES.dashboard,
+    pages: PAGES,
+    antique: antique,
+  });
+});
+
 app.get('/contact', (req, res) => {
   res.render('contact.ejs', { currentPage: PAGES.contact, pages: PAGES });
 });
@@ -204,9 +216,18 @@ app.get('/delivery', (req, res) => {
   res.render('delivery.ejs', { currentPage: PAGES.delivery, pages: PAGES });
 });
 
-app.get('/login', (req, res) => {
-  if (req.user) res.render('./admin/dashboard.ejs', { admin: req.user });
-  else {
+app.get('/login', async (req, res) => {
+  if (req.user) {
+    console.log(req.user);
+
+    const antiques = await getAntiques();
+    res.render('./admin/dashboard.ejs', {
+      currentPage: PAGES.dashboard,
+      pages: PAGES,
+      antiques: antiques,
+      admin: req.user,
+    });
+  } else {
     const errorMessages = req.flash('error');
     console.log(errorMessages);
     res.render('./admin/login.ejs', { errorMessages });
@@ -222,16 +243,25 @@ app.get('/logout', (req, res) => {
   });
 });
 
-app.get('/dashboard', isAuthenticated, (req, res) => {
+app.get('/dashboard', isAuthenticated, async (req, res) => {
   console.log(req.user);
-  res.render('./admin/dashboard.ejs', { admin: req.user });
+
+  const antiques = await getAntiques();
+  res.render('./admin/dashboard.ejs', {
+    currentPage: PAGES.dashboard,
+    pages: PAGES,
+    antiques: antiques,
+    admin: req.user,
+  });
 });
 
 app.get('/create', isAuthenticated, async (req, res) => {
   const categories = await getCategories();
   res.render('./admin/create.ejs', {
-    admin: { username: 'testing atm' },
+    admin: req.user,
     categories: categories,
+    currentPage: PAGES.create,
+    pages: PAGES,
   });
 });
 
@@ -284,11 +314,17 @@ app.post(
     const cost = req.body.cost;
 
     try {
+      const mainImageNameSplit = mainImage.split('.');
+      const totalSplitParts = mainImageNameSplit.length;
+      const mainImageExtension =
+        mainImageNameSplit[totalSplitParts - 1].toLowerCase();
+      const mainImageName = mainImageNameSplit.slice(0, -1).join('.');
+
       const mainImageObject = {
-        name: mainImage.split('.')[0],
+        name: mainImageName,
         path: 'assets/images',
-        alt: mainImage.split('.')[0].toLowerCase(),
-        img_extension: mainImage.split('.')[1].toLowerCase(),
+        alt: mainImageName.toLowerCase(),
+        img_extension: mainImageExtension,
       };
       console.log({ mainImageObject });
       const resultMainImage = await db.query(
@@ -305,12 +341,19 @@ app.post(
 
       let secondaryImageObjects = [];
       secondaryImages.map((secondaryImage) => {
-        const secondaryImageName = secondaryImage.originalname;
+        const secondaryImageNameSplit = secondaryImage.originalname.split('.');
+        const totalSplitParts = secondaryImageNameSplit.length;
+        const secondaryImageExtension =
+          secondaryImageNameSplit[totalSplitParts - 1].toLowerCase();
+        const secondaryImageName = secondaryImageNameSplit
+          .slice(0, -1)
+          .join('.');
+
         secondaryImageObjects.push({
-          name: secondaryImageName.split('.')[0],
+          name: secondaryImageName,
           path: 'assets/images',
-          alt: secondaryImageName.split('.')[0].toLowerCase(),
-          img_extension: secondaryImageName.split('.')[1].toLowerCase(),
+          alt: secondaryImageName.toLowerCase(),
+          img_extension: secondaryImageExtension,
         });
       });
       console.log(secondaryImageObjects);
@@ -361,7 +404,7 @@ app.post(
           ]
         );
 
-        res.redirect('/');
+        res.redirect('/dashboard');
       } catch (error) {
         console.error(error.message);
         res.redirect('/create');
@@ -372,6 +415,71 @@ app.post(
     }
   }
 );
+
+app.post('/delete', async (req, res) => {
+  console.log(req.body.antiqueID);
+  try {
+    const antique = await getAntique(req.body.antiqueID);
+    console.log('Antique to delete: ', antique);
+    // delete the antique
+    await db.query('DELETE FROM antiques WHERE id = $1', [req.body.antiqueID]);
+
+    // delete associated main image as well (if they are not found in other antiques)
+    let mainImageId = antique.main_image_id;
+    let secondaryImagesIds = antique.secondary_images_ids;
+    const imagesIdsToDelete = [mainImageId, ...secondaryImagesIds];
+
+    console.log('DELETE IDS: ', imagesIdsToDelete);
+    console.log('IMAGES TO DELETE IDS: ', imagesIdsToDelete);
+    const imgNames = await db.query(
+      "SELECT name || '.' || img_extension AS filename FROM images WHERE id = ANY($1::int[])",
+      [imagesIdsToDelete]
+    );
+    console.log('IMG NAMES TO DELETE: ', imgNames.rows); // Expecting an array of filenames in the request body
+    await db.query('DELETE FROM images WHERE id = ANY($1::int[])', [
+      imagesIdsToDelete,
+    ]);
+
+    // remove local images
+    const filenames = imgNames.rows.map((imgName) => imgName.filename);
+    console.log(filenames);
+
+    if (!Array.isArray(filenames) || filenames.length === 0) {
+      console.log('No filenames provided.');
+    } else {
+      const filePaths = filenames.map((filename) =>
+        path.join('public/assets/images/', filename)
+      );
+
+      let deleteCount = 0;
+      const errors = [];
+
+      filePaths.forEach((filePath) => {
+        fs.unlink(filePath, (err) => {
+          if (err) {
+            errors.push(`Failed to delete ${filePath}: ${err.message}`);
+          } else {
+            deleteCount++;
+          }
+
+          if (deleteCount + errors.length === filenames.length) {
+            if (errors.length > 0) {
+              console.log({
+                message: 'Some files could not be deleted.',
+                errors,
+              });
+            }
+            return console.log('All files deleted successfully.');
+          }
+        });
+      });
+    }
+  } catch (error) {
+    console.error(error.message);
+  } finally {
+    res.redirect('/dashboard');
+  }
+});
 
 app.post(
   '/login',

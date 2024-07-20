@@ -13,7 +13,13 @@
   z-index: 999;
 }
 
-.header > h1 > a {
+.header > h1 {
+  padding: 0;
+  margin: 0;
+}
+
+.header > h1 > a,
+.header > a {
   text-decoration: none;
   color: #dadada;
   width: 100%;
