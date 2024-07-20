@@ -332,21 +332,22 @@ app.get('/update:id', isAuthenticated, async (req, res) => {
   });
 });
 
+app.post('/contact', (req, res) => {
+  console.log('Received a contact form submition.');
+  console.log({
+    name: req.body.name,
+    email: req.body.email,
+    message: req.body.message,
+  });
+  // TODO send email here
+  res.redirect('/');
+});
+
 app.post(
   '/update',
   isAuthenticated,
   upload.fields([{ name: 'image' }, { name: 'images' }]),
   async (req, res, next) => {
-    /*
-    // Check if files were uploaded
-    const mainImg = req.files['image'] ? req.files['image'][0] : undefined;
-
-    // Multiple files (secondary images)
-    const secondaryImgs = req.files['images'] || [];
-
-    console.log('Main Image:', mainImg);
-    console.log('Secondary Images:', secondaryImgs);
-    */
     console.log('Updating antique with id...: ', req.body.antiqueID);
     // TODO Update Name, Description & Cost Fields
     const updatedName = req.body.name;

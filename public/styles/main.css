@@ -1,6 +1,7 @@
 @import 'header.css';
 @import 'antique-small-view-grid.css';
 @import 'antique-big-view.css';
+@import 'contact.css';
 @import 'login.css';
 @import 'create.css';
 @import 'footer.css';
@@ -27,9 +28,9 @@ h3 {
 
 /* BODY CONTENT */
 .content {
-  margin-top: calc(15vh + 0.5rem);
-  margin-left: auto;
-  margin-right: auto;
+  margin-top: calc(15vh + 1rem);
+  margin-left: 2rem;
+  margin-right: 2rem;
   margin-bottom: calc(5vh + 0.5rem);
 }
 .secret-content {
