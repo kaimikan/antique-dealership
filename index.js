@@ -24,7 +24,12 @@ const storage = multer.diskStorage({
     cb(null, 'public/assets/images/'); // Directory where files will be saved
   },
   filename: function (req, file, cb) {
-    cb(null, file.originalname); // Append timestamp to filename to avoid overwriting
+    const timestamp = Date.now();
+    const ext = path.extname(file.originalname);
+    const basename = path.basename(file.originalname, ext);
+    const filename = `${basename}${timestamp}${ext}`;
+    file.timestampedFilename = filename; // Store timestamped filename in the file object
+    cb(null, filename);
   },
 });
 const upload = multer({ storage: storage });
@@ -194,13 +199,14 @@ app.get('/antique:id', async (req, res) => {
   });
 });
 
-app.get('/controlantique:id', async (req, res) => {
+app.get('/controlantique:id', isAuthenticated, async (req, res) => {
   console.log(req.params.id);
   const antique = await getAntique(req.params.id);
   res.render('./admin/antique-control.ejs', {
     currentPage: PAGES.dashboard,
     pages: PAGES,
     antique: antique,
+    admin: req.user,
   });
 });
 
@@ -304,7 +310,7 @@ app.post(
     }
 
     console.log(matchedCategoriesIds);
-    const mainImage = mainImg.originalname;
+    const mainImage = mainImg.timestampedFilename;
     const secondaryImages = secondaryImgs;
     const dimensions = {
       width: req.body.width,
@@ -341,7 +347,8 @@ app.post(
 
       let secondaryImageObjects = [];
       secondaryImages.map((secondaryImage) => {
-        const secondaryImageNameSplit = secondaryImage.originalname.split('.');
+        const secondaryImageNameSplit =
+          secondaryImage.timestampedFilename.split('.');
         const totalSplitParts = secondaryImageNameSplit.length;
         const secondaryImageExtension =
           secondaryImageNameSplit[totalSplitParts - 1].toLowerCase();
