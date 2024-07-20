@@ -3,7 +3,13 @@
 <div class="secret-content">
   <div class="secret-admin-antique-creation">
     <form action="/update" method="POST" enctype="multipart/form-data">
-      <h2>Antique Updating</h2>
+      <h2>Antique <%=antique.id %> Updating</h2>
+      <!-- HIDDEN ANTIQUE ID -->
+      <input type="text" name="antiqueID" value="<%=antique.id %>" hidden />
+      <!-- HIDDEN MAIN IMAGE ID -->
+      <input type="text" name="mainImageID" value="<%=antique.main_image_id %>" hidden />
+      <!-- HIDDEN SECONDARY IMAGES IDs -->
+      <input type="text" name="secondaryImagesIDs" value="<%=antique.secondary_images_ids %>" hidden />
       <!-- NAME -->
       <div class="form-group">
         <label for="name">Name</label>
@@ -28,15 +34,15 @@
             <div class="overSelect"></div>
           </div>
           <div id="update-checkboxes">
-            <% for (let i = 0; i < antique.categoriesObjects.length; i++) { %>
-            <label for="category_<%= antique.categoriesObjects[i].id  %>">
-              <input
-                type="checkbox"
-                id="category_<%= antique.categoriesObjects[i].id %>"
-                name="category_<%= antique.categoriesObjects[i].id %>"
-                checked
-              /><%= antique.categoriesObjects[i].name %></label
-            >
+            <% for (let i = 0; i < categories.length; i++) { %>
+              <label for="category_<%= categories[i].id  %>">
+                <input
+                  type="checkbox"
+                  id="category_<%= categories[i].id %>"
+                  <% if (antique.category_ids.includes(categories[i].id)) { %> checked <% } %>
+                  name="category_<%= categories[i].id %>"
+                  /><%= categories[i].name %>
+              </label>
             <% } %>
           </div>
         </div>

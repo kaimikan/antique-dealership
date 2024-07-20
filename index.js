@@ -322,13 +322,241 @@ app.get('/create', isAuthenticated, async (req, res) => {
 app.get('/update:id', isAuthenticated, async (req, res) => {
   console.log('UPDATE ID: ', req.params.id);
   const antique = await getAntique(req.params.id);
+  const categories = await getCategories();
   res.render('./admin/update-antique.ejs', {
     admin: req.user,
     antique: antique,
+    categories: categories,
     currentPage: PAGES.create,
     pages: PAGES,
   });
 });
+
+app.post(
+  '/update',
+  isAuthenticated,
+  upload.fields([{ name: 'image' }, { name: 'images' }]),
+  async (req, res, next) => {
+    /*
+    // Check if files were uploaded
+    const mainImg = req.files['image'] ? req.files['image'][0] : undefined;
+
+    // Multiple files (secondary images)
+    const secondaryImgs = req.files['images'] || [];
+
+    console.log('Main Image:', mainImg);
+    console.log('Secondary Images:', secondaryImgs);
+    */
+    console.log('Updating antique with id...: ', req.body.antiqueID);
+    // TODO Update Name, Description & Cost Fields
+    const updatedName = req.body.name;
+    const updatedDescription = req.body.description;
+    const updatedCost = req.body.cost;
+    // TODO Update Dimensions
+    const updatedDimensions = getFormattedDimensions({
+      width: req.body.width,
+      height: req.body.height,
+      length: req.body.length,
+    });
+    // TODO Update Categories
+    const categoryPattern = /^category_\d+$/;
+    let matchedCategoriesIds = [];
+
+    for (let key in req.body) {
+      if (
+        Object.prototype.hasOwnProperty.call(req.body, key) &&
+        categoryPattern.test(key)
+      ) {
+        console.log('KEY: ', key);
+        const categoryID = Number(key.split('_')[1], 10);
+        matchedCategoriesIds.push(categoryID);
+      }
+    }
+    console.log(matchedCategoriesIds);
+    const updatedCategoryIds = matchedCategoriesIds;
+    let updatedSecondaryImagesIDs = [];
+    // Update Main Image (overwrite local image with multer, update db image in images table)
+    // Step 0. Check if any new image was loaded
+    const mainImg = req.files['image'] ? req.files['image'][0] : undefined;
+    if (mainImg) {
+      // Step 1. get old main object
+      const oldMainImgObject = (
+        await db.query('SELECT * FROM images WHERE id = $1', [
+          req.body.mainImageID,
+        ])
+      ).rows[0];
+      console.log(oldMainImgObject);
+      const mainImgId = oldMainImgObject.id;
+      console.log('OLD MAIN IMAGE ID: ', mainImgId);
+
+      // Step 2. delete old image local version
+      const fileName =
+        oldMainImgObject.name + '.' + oldMainImgObject.img_extension; // Get the file name from query parameters
+      const filePath = path.join('public/assets/images/', fileName);
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error('Error deleting file:', err);
+          // return res.status(500).send('Error deleting file.');
+        }
+        console.log('File deleted successfully.');
+      });
+
+      // Step 3. update the main image value in the database
+      const newMainImage = mainImg.timestampedFilename;
+
+      const mainImageNameSplit = newMainImage.split('.');
+      const totalSplitParts = mainImageNameSplit.length;
+      const mainImageExtension =
+        mainImageNameSplit[totalSplitParts - 1].toLowerCase();
+      const mainImageName = mainImageNameSplit.slice(0, -1).join('.');
+
+      const mainImageObject = {
+        name: mainImageName,
+        path: 'assets/images',
+        alt: mainImageName.toLowerCase(),
+        img_extension: mainImageExtension,
+      };
+      console.log({ mainImageObject });
+      await db.query(
+        'UPDATE images SET name = $2, path = $3, alt = $4, img_extension = $5 WHERE id = $1',
+        [
+          mainImgId,
+          mainImageObject.name,
+          mainImageObject.path,
+          mainImageObject.alt,
+          mainImageObject.img_extension,
+        ]
+      );
+    }
+    // TODO Update Secondary Images (here we straight up delete them and create new ones, since they are not as essential as the main images)
+    // Step 0. Check if any new images was loaded
+    const secondaryImgs = req.files['images'] || [];
+    if (secondaryImgs.length > 0) {
+      // Step 1. Get the old images from the db
+      console.log(
+        'What old secondary img ids do we get from the form: ',
+        req.body.secondaryImagesIDs
+      );
+      let secondaryImagesIDs = req.body.secondaryImagesIDs.split(',');
+      console.log(secondaryImagesIDs);
+      const imgNames = await db.query(
+        "SELECT name || '.' || img_extension AS filename FROM images WHERE id = ANY($1::int[])",
+        [secondaryImagesIDs]
+      );
+      console.log('SECONDARY IMG NAMES TO DELETE: ', imgNames.rows); // Expecting an array of filenames in the request body
+      // Step 2. delete old images from the db
+      await db.query('DELETE FROM images WHERE id = ANY($1::int[])', [
+        secondaryImagesIDs,
+      ]);
+
+      // Step 3. delete old images locally
+      const filenames = imgNames.rows.map((imgName) => imgName.filename);
+      console.log(filenames);
+
+      if (!Array.isArray(filenames) || filenames.length === 0) {
+        console.log('No filenames provided.');
+      } else {
+        const filePaths = filenames.map((filename) =>
+          path.join('public/assets/images/', filename)
+        );
+
+        let deleteCount = 0;
+        const errors = [];
+
+        filePaths.forEach((filePath) => {
+          fs.unlink(filePath, (err) => {
+            if (err) {
+              errors.push(`Failed to delete ${filePath}: ${err.message}`);
+            } else {
+              deleteCount++;
+            }
+
+            if (deleteCount + errors.length === filenames.length) {
+              if (errors.length > 0) {
+                console.log({
+                  message: 'Some files could not be deleted.',
+                  errors,
+                });
+              }
+              console.log('All files deleted successfully.');
+            }
+          });
+        });
+      }
+
+      // Step 4. add new secondary images to db
+      let secondaryImageObjects = [];
+      let secondaryImages = secondaryImgs;
+      secondaryImages.map((secondaryImage) => {
+        const secondaryImageNameSplit =
+          secondaryImage.timestampedFilename.split('.');
+        const totalSplitParts = secondaryImageNameSplit.length;
+        const secondaryImageExtension =
+          secondaryImageNameSplit[totalSplitParts - 1].toLowerCase();
+        const secondaryImageName = secondaryImageNameSplit
+          .slice(0, -1)
+          .join('.');
+
+        secondaryImageObjects.push({
+          name: secondaryImageName,
+          path: 'assets/images',
+          alt: secondaryImageName.toLowerCase(),
+          img_extension: secondaryImageExtension,
+        });
+      });
+      console.log(secondaryImageObjects);
+
+      let secondaryImagesDatabaseIds = [];
+      for (let i = 0; i < secondaryImageObjects.length; i++) {
+        const resultSecondaryImg = await db.query(
+          'INSERT INTO images (name, path, alt, img_extension) VALUES ($1, $2, $3, $4) RETURNING id',
+          [
+            secondaryImageObjects[i].name,
+            secondaryImageObjects[i].path,
+            secondaryImageObjects[i].alt,
+            secondaryImageObjects[i].img_extension,
+          ]
+        );
+        console.log('SECONDARY IMG ID: ', resultSecondaryImg.rows[0].id);
+        const secondaryImgId = resultSecondaryImg.rows[0].id;
+        secondaryImagesDatabaseIds.push(secondaryImgId);
+        updatedSecondaryImagesIDs = secondaryImagesDatabaseIds;
+      }
+      // Step 5. update secondary images ids field for the antique
+    }
+    // TODO Remove single secondary Images
+
+    // TODO Add onto existing secondary Images
+
+    if (updatedSecondaryImagesIDs.length == 0) {
+      await db.query(
+        'UPDATE antiques SET name = $2, description = $3, cost_euro = $4, dimensions_centimeters = $5, category_ids = $6 WHERE id = $1',
+        [
+          req.body.antiqueID,
+          updatedName,
+          updatedDescription,
+          updatedCost,
+          updatedDimensions,
+          updatedCategoryIds,
+        ]
+      );
+    } else {
+      await db.query(
+        'UPDATE antiques SET name = $2, description = $3, cost_euro = $4, dimensions_centimeters = $5, category_ids = $6, secondary_images_ids = $7 WHERE id = $1',
+        [
+          req.body.antiqueID,
+          updatedName,
+          updatedDescription,
+          updatedCost,
+          updatedDimensions,
+          updatedCategoryIds,
+          updatedSecondaryImagesIDs,
+        ]
+      );
+    }
+    res.redirect('/dashboard');
+  }
+);
 
 app.post(
   '/create',
@@ -482,7 +710,7 @@ app.post(
   }
 );
 
-app.post('/delete', async (req, res) => {
+app.post('/delete', isAuthenticated, async (req, res) => {
   console.log(req.body.antiqueID);
   try {
     const antique = await getAntique(req.body.antiqueID);
