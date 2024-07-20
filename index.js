@@ -112,8 +112,15 @@ async function getAntique(id) {
     ]);
     let antique = response.rows[0];
 
+    antique.categoriesObjects = await getAntiqueCategories(
+      antique.category_ids
+    );
     antique.imageObject = await getAntiqueMainImage(antique);
     antique.secondaryImageObjects = await getAntiqueSecondaryImages(antique);
+    console.log(antique.dimensions_centimeters);
+    antique.dimensionsObject = getObjectDimensions(
+      antique.dimensions_centimeters
+    );
     console.log('ANTIQUE: ', { antique });
 
     return antique;
@@ -153,7 +160,7 @@ async function getAntiqueSecondaryImages(antique) {
       [secondaryImagesIds]
     );
     const images = response.rows;
-    console.log(images);
+    // console.log(images);
 
     // row returns an array of selection, but we only want one image object from it
     return images;
@@ -176,8 +183,49 @@ async function getCategories() {
   }
 }
 
+async function getAntiqueCategories(categoryIds) {
+  try {
+    const response = await db.query(
+      ' SELECT * FROM categories WHERE id = ANY($1::int[])',
+      [categoryIds]
+    );
+    const categories = response.rows;
+    // console.log(categories);
+
+    // row returns an array of selection, but we only want one image object from it
+    return categories;
+  } catch (error) {
+    console.error(error.message);
+    return { error: error.message };
+  }
+}
+
 function getFormattedDimensions(dimensionsObject) {
   return `Height: ${dimensionsObject.height}cm; Width: ${dimensionsObject.width}cm; Length: ${dimensionsObject.length}cm;`;
+}
+
+function getObjectDimensions(formattedDimensions) {
+  // Regular expressions to extract height, width, and length
+  const heightRegex = /Height:\s(\d+)cm;/;
+  const widthRegex = /Width:\s(\d+)cm;/;
+  const lengthRegex = /Length:\s(\d+)cm;/;
+
+  // Extract height, width, and length values
+  const heightMatch = formattedDimensions.match(heightRegex);
+  const widthMatch = formattedDimensions.match(widthRegex);
+  const lengthMatch = formattedDimensions.match(lengthRegex);
+
+  // Store the extracted values in variables
+  const height = heightMatch ? heightMatch[1] : null;
+  const width = widthMatch ? widthMatch[1] : null;
+  const length = lengthMatch ? lengthMatch[1] : null;
+
+  const dimensionsObject = {
+    width: width,
+    height: height,
+    length: length,
+  };
+  return dimensionsObject;
 }
 
 app.get('/', async (req, res) => {
@@ -266,6 +314,17 @@ app.get('/create', isAuthenticated, async (req, res) => {
   res.render('./admin/create.ejs', {
     admin: req.user,
     categories: categories,
+    currentPage: PAGES.create,
+    pages: PAGES,
+  });
+});
+
+app.get('/update:id', isAuthenticated, async (req, res) => {
+  console.log('UPDATE ID: ', req.params.id);
+  const antique = await getAntique(req.params.id);
+  res.render('./admin/update-antique.ejs', {
+    admin: req.user,
+    antique: antique,
     currentPage: PAGES.create,
     pages: PAGES,
   });

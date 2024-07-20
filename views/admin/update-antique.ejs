@@ -1,0 +1,194 @@
+<%- include('../partials/header.ejs') %>
+
+<div class="secret-content">
+  <div class="secret-admin-antique-creation">
+    <form action="/update" method="POST" enctype="multipart/form-data">
+      <h2>Antique Updating</h2>
+      <!-- NAME -->
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input type="text" name="name" value="<%= antique.name %>" />
+      </div>
+      <!-- DESCRIPTION -->
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea type="textarea" name="description">
+<%= antique.description %></textarea
+        >
+      </div>
+      <!-- CATEGORIES -->
+      <% if (antique.categoriesObjects.length > 0) { %>
+      <div class="form-group">
+        <div class="multiselect">
+          <div class="selectBox" onclick="showCategories()">
+            <label for="select-categories">Categories</label>
+            <select name="select-categories">
+              <option>Selected categories</option>
+            </select>
+            <div class="overSelect"></div>
+          </div>
+          <div id="update-checkboxes">
+            <% for (let i = 0; i < antique.categoriesObjects.length; i++) { %>
+            <label for="category_<%= antique.categoriesObjects[i].id  %>">
+              <input
+                type="checkbox"
+                id="category_<%= antique.categoriesObjects[i].id %>"
+                name="category_<%= antique.categoriesObjects[i].id %>"
+                checked
+              /><%= antique.categoriesObjects[i].name %></label
+            >
+            <% } %>
+          </div>
+        </div>
+      </div>
+      <% } else if (antique.categoriesObjects[i].length == 0) { %>
+      <p>Could not find any categories</p>
+      <%}%>
+      <!-- MAIN IMAGE -->
+      <div class="form-group">
+        <label for="image">Main Image</label>
+        <input
+          type="file"
+          class="main-image"
+          name="image"
+          id="image"
+          accept="image/*"
+          onchange="previewMainImage()"
+        />
+        <br />
+        <div class="main-image-preview">
+          <img src="<%="../" + antique.imageObject.path + "/" +
+          antique.imageObject.name + "." + antique.imageObject.img_extension %>"
+          alt="<%= antique.imageObject.alt %>" />
+        </div>
+        <br />
+      </div>
+      <!-- SECONDARY IMAGES -->
+      <div class="form-group">
+        <label for="images">Secondary Images</label>
+        <input
+          type="file"
+          class="secondary-images"
+          name="images"
+          id="images"
+          accept="image/*"
+          multiple
+          onchange="previewSecondaryImages()"
+        />
+        <br />
+        <div class="secondary-images-preview">
+          <% antique.secondaryImageObjects.map((secondaryImageObject) => { %>
+          <img class="extra-image" src="<%="../" + secondaryImageObject.path +
+          "/" + secondaryImageObject.name + "." +
+          secondaryImageObject.img_extension %>" alt="<%=
+          secondaryImageObject.alt %>" /> <% }); %>
+        </div>
+        <br />
+      </div>
+      <!-- DIMENSIONS -->
+      <div class="form-group">
+        <p class="dimensions-main-label">Dimensions</p>
+        <div class="dimensions">
+          <div class="dimension-input-group">
+            <label for="width">Width</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              name="width"
+              value="<%= antique.dimensionsObject.width %>"
+            />
+          </div>
+          <div>
+            <label for="height">Height</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              name="height"
+              value="<%= antique.dimensionsObject.width %>"
+            />
+          </div>
+          <div>
+            <label for="length">Length</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              name="length"
+              value="<%= antique.dimensionsObject.width %>"
+            />
+          </div>
+        </div>
+      </div>
+      <!-- COST -->
+      <div class="form-group">
+        <label for="Cost">Cost</label>
+        <input
+          type="number"
+          step="0.01"
+          min="0"
+          name="cost"
+          value="<%= antique.cost_euro %>"
+        />
+      </div>
+      <% if (locals.message) { %>
+      <p><%= message %></p>
+      <% } %>
+      <button type="submit">Update</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  var expanded = true;
+
+  function showCategories() {
+    var checkboxes = document.getElementById('update-checkboxes');
+    if (!expanded) {
+      checkboxes.style.display = 'block';
+      expanded = true;
+    } else {
+      checkboxes.style.display = 'none';
+      expanded = false;
+    }
+  }
+
+  function previewMainImage() {
+    const preview = document.querySelector('.main-image-preview');
+    preview.innerHTML = ''; // Clear existing previews
+    const file = document.querySelector('input[type=file].main-image').files[0];
+
+    const reader = new FileReader();
+
+    reader.onload = function (event) {
+      const img = document.createElement('img');
+      img.src = event.target.result;
+      preview.appendChild(img);
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  function previewSecondaryImages() {
+    const preview = document.querySelector('.secondary-images-preview');
+    preview.innerHTML = ''; // Clear existing previews
+    const files = document.querySelector(
+      'input[type=file].secondary-images'
+    ).files;
+
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+
+      reader.onload = function (event) {
+        const img = document.createElement('img');
+        img.src = event.target.result;
+        preview.appendChild(img);
+      };
+
+      reader.readAsDataURL(file);
+    });
+  }
+</script>
+
+<%- include('../partials/footer.ejs') %>

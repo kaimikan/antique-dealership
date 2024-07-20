@@ -4,6 +4,8 @@
   <div class="antique-big-view">
     <% if (locals.antique) { %>
     <div class="image-container">
+      <p><%="../" +   antique.imageObject.path + "/" + antique.imageObject.name +
+      "." + antique.imageObject.img_extension %>"</p>
       <img src="<%="../" +   antique.imageObject.path + "/" + antique.imageObject.name +
       "." + antique.imageObject.img_extension %>" alt="<%=
       antique.imageObject.alt %>" />
@@ -13,6 +15,10 @@
     <form method="post" action="/delete">
       <input type="text" name="antiqueID" value="<%=antique.id %>" hidden/>
       <input type="submit" value="Delete"/>
+    </form>
+
+    <form method="get" action="/update<%=antique.id %>">
+      <input type="submit" value="Update"/>
     </form>
 
     <div class="extra-images-container">

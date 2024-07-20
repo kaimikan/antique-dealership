@@ -146,6 +146,13 @@
     bottom: 0;
   }
 
+  #update-checkboxes {
+    display: block;
+    border: 1px #dadada solid;
+    padding: 10px; /* Padding inside the button */
+    border-radius: 4px; /* Slightly rounded corners */
+  }
+
   #checkboxes {
     display: none;
     border: 1px #dadada solid;
