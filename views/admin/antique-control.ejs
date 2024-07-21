@@ -3,10 +3,10 @@
 <div class="secret-content">
   <div class="antique-big-view">
     <% if (locals.antique) { %>
-    <div class="image-container">
+    <div class="image-container" id="main-image-container">
       <img src="<%="../" +   antique.imageObject.path + "/" + antique.imageObject.name +
       "." + antique.imageObject.img_extension %>" alt="<%=
-      antique.imageObject.alt %>" />
+      antique.imageObject.alt %>" id="main-image"/>
     </div>
 
     
@@ -40,6 +40,41 @@
       <%} %>
     </div>
   </div>
+
+  <script>
+    // ZOOMING MAIN IMAGE
+    const imageContainer = document.getElementById('main-image-container');
+    const zoomImage = document.getElementById('main-image');
+
+    imageContainer.addEventListener('mousemove', (e) => {
+      const rect = imageContainer.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      // Convert mouse coordinates to percentage values
+      const xPercent = (x / rect.width) * 100;
+      const yPercent = (y / rect.height) * 100;
+
+      // Adjust transform origin based on mouse position
+      zoomImage.style.transformOrigin = `${xPercent}% ${yPercent}%`;
+    });
+
+    // CLICKING SECONDARY IMAGES
+    const mainImage = document.getElementById('main-image');
+    const originalSrc = mainImage.src;
+
+    const secondaryImages = document.querySelectorAll('.extra-image');
+
+    secondaryImages.forEach(secondaryImage => {
+        secondaryImage.addEventListener('click', () => {
+          // swap the values of the main and secondary image
+          const mainImage = document.getElementById('main-image');
+          const srcSwapper = mainImage.src;
+          mainImage.src = secondaryImage.src; 
+          secondaryImage.src = srcSwapper
+        });
+    });
+  </script>
 
   <%- include('../partials/footer.ejs') %>
 </div>

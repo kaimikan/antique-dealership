@@ -27,6 +27,29 @@
     text-align: center;
   }
 
+  #main-image-container {
+    overflow: hidden;
+    cursor: crosshair; /* Changes cursor to crosshair on hover */
+  }
+
+  #main-image {
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    /* cursor: zoom-in; */
+    transition: transform 0.3s ease;
+    transform-origin: center center; /* Default transform origin */
+  }
+
+  #main-image-container:hover #main-image {
+    transform: scale(2); /* Adjust scale for desired zoom level */
+  }
+
+  .extra-image:hover {
+    cursor: pointer;
+  }
+
   .extra-images-container {
     display: flex;
     justify-content: flex-start;
