@@ -744,7 +744,7 @@ app.post(
         secondaryImages: secondaryImages,
         dimensions: getFormattedDimensions(dimensions),
         cost: Number(cost, 10),
-        referenceNumber: '#123123',
+        referenceNumber: '#Undefined',
         mainImageId: mainImageDatabaseId,
         secondaryImagesIds: secondaryImagesDatabaseIds,
       };

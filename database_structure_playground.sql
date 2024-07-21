@@ -49,7 +49,7 @@ CREATE TABLE antiques (
 	category_ids INT[] NOT NULL, 
 	dimensions_centimeters TEXT NOT NULL, 
 	cost_euro FLOAT NOT NULL CHECK (cost_euro BETWEEN 0 AND 10000000), 
-	reference_number TEXT NOT NULL, 
+	reference_number TEXT, 
 	main_image_id INT NOT NULL REFERENCES images(id), 
 	secondary_images_ids INT[]
 );
@@ -58,3 +58,16 @@ INSERT INTO antiques (name, description, category_ids, dimensions_centimeters, c
 VALUES ('Example Chair', 'A chair used as an example first antique item', '{1}', 
 'Height: 140cm; Width: 100cm; Length: 90cm;', 50, '#123123', 1, '{2, 2, 2}');
 
+-- generating a new reference number string in with #(7 digits total filled with 0s and the id)
+CREATE OR REPLACE FUNCTION generate_reference_number()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.reference_number := '#' || LPAD(NEW.id::TEXT, 6, '0');
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_reference_number
+BEFORE INSERT ON antiques
+FOR EACH ROW
+EXECUTE FUNCTION generate_reference_number();
