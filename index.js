@@ -170,11 +170,39 @@ async function getAntiqueSecondaryImages(antique) {
   }
 }
 
+async function getAntiquesFromCategory(categoryID) {
+  try {
+    const response = await db.query(
+      ' SELECT * FROM antiques WHERE $1 = ANY (category_ids)',
+      [categoryID]
+    );
+    const antiques = response.rows;
+    console.log('ANTIQUES OF THIS CATEGORY: ', antiques);
+
+    for (let i = 0; i < antiques.length; i++) {
+      antiques[i].imageObject = await getAntiqueMainImage(antiques[i]);
+      antiques[i].secondaryImageObjects = await getAntiqueSecondaryImages(
+        antiques[i]
+      );
+      console.log(antiques[i].dimensions_centimeters);
+      antiques[i].dimensionsObject = getObjectDimensions(
+        antiques[i].dimensions_centimeters
+      );
+      console.log('LOADED ANTIQUE: ', antiques[i]);
+    }
+
+    return antiques;
+  } catch (error) {
+    console.error(error.message);
+    return { error: error.message };
+  }
+}
+
 async function getCategories() {
   try {
     const response = await db.query(' SELECT * FROM categories');
     const categories = response.rows;
-    console.log(categories);
+    // console.log(categories);
 
     return categories;
   } catch (error) {
@@ -230,20 +258,24 @@ function getObjectDimensions(formattedDimensions) {
 
 app.get('/', async (req, res) => {
   const antiques = await getAntiques();
+  const categories = await getCategories();
   res.render('index.ejs', {
     currentPage: PAGES.home,
     pages: PAGES,
     antiques: antiques,
+    categories: categories,
   });
 });
 
 app.get('/antique:id', async (req, res) => {
   console.log(req.params.id);
   const antique = await getAntique(req.params.id);
+  const categories = await getCategories();
   res.render('antique.ejs', {
     currentPage: PAGES.home,
     pages: PAGES,
     antique: antique,
+    categories: categories,
   });
 });
 
@@ -258,16 +290,50 @@ app.get('/controlantique:id', isAuthenticated, async (req, res) => {
   });
 });
 
-app.get('/contact', (req, res) => {
-  res.render('contact.ejs', { currentPage: PAGES.contact, pages: PAGES });
+app.get('/contact', async (req, res) => {
+  const categories = await getCategories();
+  res.render('contact.ejs', {
+    currentPage: PAGES.contact,
+    pages: PAGES,
+    categories: categories,
+  });
 });
 
-app.get('/categories', (req, res) => {
-  res.render('categories.ejs', { currentPage: PAGES.categories, pages: PAGES });
+app.get('/filter-:categoryID', async (req, res) => {
+  console.log('GOT ID FOR CATEGORY = TO: ', req.params.categoryID);
+  const antiquesFromCategory = await getAntiquesFromCategory(
+    req.params.categoryID
+  );
+  const categories = await getCategories();
+  const currentCategory = categories.find(
+    (category) => category.id == req.params.categoryID
+  );
+  res.render('categories.ejs', {
+    currentPage: PAGES.categories,
+    pages: PAGES,
+    antiques: antiquesFromCategory,
+    currentCategory: currentCategory,
+    categories: categories,
+  });
 });
 
-app.get('/delivery', (req, res) => {
-  res.render('delivery.ejs', { currentPage: PAGES.delivery, pages: PAGES });
+app.get('/categories', async (req, res) => {
+  const categories = await getCategories();
+  console.log('CATEGORIES: ', categories);
+  res.render('categories.ejs', {
+    currentPage: PAGES.categories,
+    pages: PAGES,
+    categories: categories,
+  });
+});
+
+app.get('/delivery', async (req, res) => {
+  const categories = await getCategories();
+  res.render('delivery.ejs', {
+    currentPage: PAGES.delivery,
+    pages: PAGES,
+    categories: categories,
+  });
 });
 
 app.get('/login', async (req, res) => {

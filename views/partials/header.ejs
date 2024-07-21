@@ -13,13 +13,29 @@
       <h1><a href="/">Antique Dealership</a></h1>
       <a href="/dashboard">Admin Board</a>
     </div>
-    <div class="subheader">
+    <div class="subheader ">
       <a
-        href="/"
-        class="<% if (currentPage == pages.home) { %> <%="currentPage"%> <% }%>"
-        >Home</a
-      >
-      <a href="/categories" class="<% if (currentPage == pages.categories) { %> <%="currentPage"%> <% }%>">Categories</a>
+      href="/"
+      class="<% if (currentPage == pages.home) { %> <%="currentPage"%> <% }%>"
+      >Home</a>
+
+      <div class="dropdown <%= (currentPage == pages.categories) ? 'currentPage' : '' %>">
+        <a href="#" class="dropBtn <%= (currentPage == pages.categories) ? 'currentPage' : '' %>">Category</a>
+        <div class="dropdown-content">
+          <% if (locals.categories) { %>
+            <% for (let i = 0; i < categories.length; i++) { %>
+              <% if (locals.currentCategory) { %>
+                <a href=<%="/filter-"+categories[i].id%> class="<%= (currentCategory.name == categories[i].name) ? 'currentFilter' : '' %>"><%= categories[i].name %></a>
+              <% } else { %>
+                <a href=<%="/filter-"+categories[i].id%>><%= categories[i].name %></a>
+              <% } %>
+            <% } %>
+          <% } else { %>
+            <p>404 Categories</p>
+          <% } %>
+        </div>
+      </div>
+
       <a href="/contact" class="<% if (currentPage == pages.contact) { %> <%="currentPage"%> <% }%>">Contact</a>
       <a href="/delivery" class="<% if (currentPage == pages.delivery) { %> <%="currentPage"%> <% }%>">Delivery</a>
     </div>
