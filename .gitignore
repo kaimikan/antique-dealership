@@ -1,6 +1,3 @@
-# Images
-public/assets/images/*
-
 # Logs
 logs
 *.log
