@@ -94,6 +94,28 @@ async function getAntiques() {
     for (let i = 0; i < antiques.length; i++) {
       // console.log(antiques[i]);
       antiques[i].imageObject = await getAntiqueMainImage(antiques[i]);
+
+      // Adding search words
+      antiques[i].categoriesObjects = await getAntiqueCategories(
+        antiques[i].category_ids
+      );
+
+      antiques[i].searchWords = [
+        antiques[i].name,
+        antiques[i].description,
+        antiques[i].imageObject.name,
+      ];
+
+      antiques[i].categoriesObjects.map((antiqueCategoryObject) => {
+        console.log(
+          antiqueCategoryObject.name,
+          antiqueCategoryObject.filter_words
+        );
+        antiques[i].searchWords.push(
+          antiqueCategoryObject.name,
+          ...antiqueCategoryObject.filter_words
+        );
+      });
     }
 
     // console.log({ antiques });
@@ -117,10 +139,28 @@ async function getAntique(id) {
     );
     antique.imageObject = await getAntiqueMainImage(antique);
     antique.secondaryImageObjects = await getAntiqueSecondaryImages(antique);
-    console.log(antique.dimensions_centimeters);
+    // console.log(antique.dimensions_centimeters);
     antique.dimensionsObject = getObjectDimensions(
       antique.dimensions_centimeters
     );
+
+    antique.searchWords = [
+      antique.name,
+      antique.description,
+      antique.imageObject.name,
+    ];
+    antique.categoriesObjects.map((antiqueCategoryObject) => {
+      console.log(
+        antiqueCategoryObject.name,
+        antiqueCategoryObject.filter_words
+      );
+      antique.searchWords.push(
+        antiqueCategoryObject.name,
+        ...antiqueCategoryObject.filter_words
+      );
+    });
+    // console.log('FILTER WORDS: ', antique.searchWords);
+
     console.log('ANTIQUE: ', { antique });
 
     return antique;
@@ -188,6 +228,14 @@ async function getAntiquesFromCategory(categoryID) {
       antiques[i].dimensionsObject = getObjectDimensions(
         antiques[i].dimensions_centimeters
       );
+
+      // SEARCH WORDS
+      antiques[i].searchWords = [
+        antiques[i].name,
+        antiques[i].description,
+        antiques[i].imageObject.name,
+      ];
+
       console.log('LOADED ANTIQUE: ', antiques[i]);
     }
 

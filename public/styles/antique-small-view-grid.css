@@ -64,3 +64,65 @@
     align-items: center;
   }
 }
+
+/* wrapper for search-bar to match grid margin */
+.search-wrapper {
+  margin: 0.5rem;
+}
+
+/* Container for the search bar */
+.search-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+}
+
+/* Styling for the search input */
+.search-input {
+  position: relative;
+
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+/* Change border color on focus */
+.search-input:focus {
+  border-color: #545454;
+}
+
+/* Styling for the search button */
+.search-button {
+  position: absolute;
+  /* 0.5 rem comes as replacement of the wrapper margin */
+  right: calc(2rem + 0.5rem);
+  border-color: #dadada;
+  border: 1px solid #545454;
+  border-radius: 10px;
+  padding: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s ease;
+}
+.search-button > img {
+  max-width: 2rem;
+}
+
+/* Hover effect for the button */
+.search-button:hover {
+  background-color: #545454;
+}
+
+/* Styling for the search icon */
+.search-button:hover > img {
+  transition: filter 0.5s ease; /* Smooth transition for filter changes */
+  filter: invert(1);
+}

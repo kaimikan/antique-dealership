@@ -2,10 +2,18 @@
 
 <div class="content">
   <% if (locals.antiques) { %>
-  <p>Our Antiques in Category <em><%= currentCategory.name %></em>:</p>
+  <!-- <p>Our Antiques in Category <em><%= currentCategory.name %></em>:</p> -->
+  <div class="search-wrapper">
+    <div class="search-container">
+      <input type="text" placeholder="Search..." class="search-input" id="search-input">
+      <button class="search-button">
+        <img class="icon" src="/assets/icons/search-50.svg" alt="search image">
+      </button>
+    </div>
+  </div>
   <div class="antique-small-view">
     <% for (let i = 0; i < antiques.length; i++) { %>
-    <div class="square-container" antique-id="<%= antiques[i].id %>">
+    <div class="square-container" search-words="<%= antiques[i].searchWords%>" antique-id="<%= antiques[i].id %>">
       <div class="image-container">
         <img src="<%= antiques[i].imageObject.path + "/" +
         antiques[i].imageObject.name + "." +
@@ -29,6 +37,27 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
+    // SEARCH QUERY
+    const searchInput = document.getElementById('search-input');
+
+    searchInput.addEventListener('input', () => {
+      const searchValue = searchInput.value.toLowerCase();
+      const items = document.querySelectorAll('.square-container');
+
+      // TODO split search input on spaces and search for each part separately
+      // added a searchable words array to each antique object that
+      // we load in or a string separated by commas, so we can make it easier to search through 
+      items.forEach(item => {
+          const searchWords = item.getAttribute('search-words').toLowerCase();
+
+          if (searchWords.includes(searchValue)) {
+              item.style.display = '';
+          } else {
+              item.style.display = 'none';
+          }
+      });
+    });
+
     // Find the clickable div
     const clickableDivs = document.getElementsByClassName('square-container');
 

@@ -8,16 +8,16 @@
       "." + antique.imageObject.img_extension %>" alt="<%=
       antique.imageObject.alt %>" id="main-image"/>
     </div>
-
     
-    <form method="post" action="/delete">
-      <input type="text" name="antiqueID" value="<%=antique.id %>" hidden/>
-      <input type="submit" value="Delete"/>
-    </form>
-
-    <form method="get" action="/update<%=antique.id %>">
-      <input type="submit" value="Update"/>
-    </form>
+    <div class="admin-antique-forms">
+      <form method="get" action="/update<%=antique.id %>">
+        <input type="submit" name="update" value="Update"/>
+      </form>
+      <form method="post" action="/delete">
+        <input type="text" name="antiqueID" value="<%=antique.id %>" hidden/>
+        <input type="submit" name="delete" value="Delete"/>
+      </form>
+    </div>
 
     <div class="extra-images-container">
       <% antique.secondaryImageObjects.map((secondaryImageObject) => { %>
@@ -34,6 +34,8 @@
         <p class="refence"><b>Ref.: </b><%= antique.reference_number %></p>
         <h3 class="cost"><%= "€ " + antique.cost_euro%></h3>
         <p class="description"><%= antique.description%></p>
+
+        
       </div>
       <% } else { %>
       <p>not loading locals antiques D:</p>
@@ -58,6 +60,11 @@
       // Adjust transform origin based on mouse position
       zoomImage.style.transformOrigin = `${xPercent}% ${yPercent}%`;
     });
+
+    // not needed, makes the transition rough
+    // imageContainer.addEventListener('mouseleave', () => {
+    //   zoomImage.style.transformOrigin = 'center center'; // Reset on mouse leave
+    // });
 
     // CLICKING SECONDARY IMAGES
     const mainImage = document.getElementById('main-image');

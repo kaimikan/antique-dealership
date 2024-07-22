@@ -89,4 +89,37 @@
     align-items: flex-start;
     border: 3px solid #525252;
   }
+
+  .admin-antique-forms {
+    grid-column: 1 / span 2; /* Second column */
+    grid-row: 3; /* Spans two rows */
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+    /* Button styles */
+    form {
+      width: 100%;
+      margin: 1rem;
+    }
+    input[type='submit'] {
+      width: 100%; /* Full width button */
+      padding: 10px; /* Padding inside the button */
+      margin-top: 1rem;
+      border: none; /* Remove default border */
+      border-radius: 4px; /* Slightly rounded corners */
+      background-color: #5f5f5f; /* Primary button color */
+      color: #dadada; /* White text color */
+      font-size: 16px; /* Larger font size for the button */
+      cursor: pointer; /* Pointer cursor on hover */
+    }
+
+    input[name='delete'] {
+      background-color: #753131; /* Primary button color */
+      color: #dadada; /* White text color */
+    }
+    input[name='update'] {
+      background-color: #313a75; /* Primary button color */
+      color: #dadada; /* White text color */
+    }
+  }
 }
